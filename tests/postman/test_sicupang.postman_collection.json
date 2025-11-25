@@ -1,0 +1,1108 @@
+{
+	"info": {
+		"_postman_id": "6d84c4fb-ab63-4281-86ef-5fe050fa3aaf",
+		"name": "test_sicupang",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44036681"
+	},
+	"item": [
+		{
+			"name": "admin",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Ekspektasi: 200 (sukses), 400 (validasi), 404 (nip tidak ditemukan), 401 (password salah), 500 (server error)\r",
+									"\r",
+									"pm.test(\"Kode status login harus salah satu: 200, 400, 401, 404, 500\", function () {\r",
+									"    pm.expect([200, 400, 401, 404, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses login (200)\r",
+									"if (pm.response.code === 200) {\r",
+									"    let json = pm.response.json();\r",
+									"    pm.test(\"Respons login sukses: Ada token\", function () {\r",
+									"        pm.expect(json).to.have.property(\"token\");\r",
+									"        pm.expect(json.token).to.be.a(\"string\").and.not.empty;\r",
+									"    });\r",
+									"    pm.test(\"Respons login sukses: Ada data pengguna\", function () {\r",
+									"        pm.expect(json).to.have.property(\"data\");\r",
+									"        pm.expect(json.data).to.have.property(\"nip\");\r",
+									"        pm.expect(json.data).to.have.property(\"peran\");\r",
+									"    });\r",
+									"    // Simpan token untuk request selanjutnya\r",
+									"    pm.environment.set(\"token\", json.token);\r",
+									"} else {\r",
+									"    // TEST-NYA AKAN FAIL JIKA MENGAKU SUKSES DI STATUS SELAIN 200\r",
+									"    pm.test(\"Respons login gagal: Tidak ada token\", function () {\r",
+									"        let json = {};\r",
+									"        try { json = pm.response.json(); } catch(e) {}\r",
+									"        pm.expect(json).to.not.have.property(\"token\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Validasi error 400 (validasi)\r",
+									"if(pm.response.code === 400) {\r",
+									"    let json = pm.response.json();\r",
+									"    pm.test(\"Error 400: Ada field errors ATAU message\", function () {\r",
+									"        pm.expect(json).to.satisfy(obj => obj.hasOwnProperty(\"errors\") || obj.hasOwnProperty(\"message\"));\r",
+									"    });\r",
+									"}\r",
+									"// Error 404 (nip tidak ditemukan)\r",
+									"if(pm.response.code === 404) {\r",
+									"    let json = pm.response.json();\r",
+									"    pm.test(\"Error 404: Pesan nip tidak ditemukan\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/tidak ditemukan/i);\r",
+									"    });\r",
+									"}\r",
+									"// Error 401 (password salah)\r",
+									"if(pm.response.code === 401) {\r",
+									"    let json = pm.response.json();\r",
+									"    pm.test(\"Error 401: Pesan salah password\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/sandi.*salah/i);\r",
+									"    });\r",
+									"}\r",
+									"// Error 500 (server error)\r",
+									"if(pm.response.code === 500) {\r",
+									"    let json = pm.response.json();\r",
+									"    pm.test(\"Error 500: Ada message error\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"nip\": \"1234567890\",\r\n  \"kata_sandi\": \"WRI@explore\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3001/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code must be 200/401/500\", function () {\r",
+									"    pm.expect([200, 401, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Berhasil: Ada property 'data'\", function () {\r",
+									"        pm.expect(json).to.have.property(\"data\");\r",
+									"        pm.expect(json.data).to.have.property(\"nip\");\r",
+									"        pm.expect(json.data).to.have.property(\"nama_lengkap\");\r",
+									"        pm.expect(json.data.nip).to.be.a(\"string\");\r",
+									"        pm.expect(json.data.nama_lengkap).to.be.a(\"string\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 401) {\r",
+									"    var err = pm.response.json();\r",
+									"    pm.test(\"401 Error: Ada error message\", function () {\r",
+									"        pm.expect(err).to.have.property(\"error\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 500) {\r",
+									"    var err = pm.response.json();\r",
+									"    pm.test(\"500 Error: Ada error message\", function () {\r",
+									"        pm.expect(err).to.have.property(\"error\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/auth/account",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"auth",
+								"account"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "edit surveyor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200: Berhasil update surveyor atau 500 error\", function () {\r",
+									"    pm.expect([200, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Ada pesan sukses\", () => {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/berhasil/i);\r",
+									"    });\r",
+									"}\r",
+									"if (pm.response.code === 500) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Ada pesan error\", () => {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"full_name\": \"Dian Pratama\",\r\n  \"nip\": \"3210050607650003\",\r\n  \"phone_number\": \"08123456789\",\r\n  \"district\": { \"id\": 1 },\r\n  \"password\": \"passwordBaru123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3001/api/admin/surveyors/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"admin",
+								"surveyors",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete surveyor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200: Berhasil hapus surveyor atau 500 error\", function () {\r",
+									"    pm.expect([200, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Ada pesan sukses\", () => {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/berhasil/i);\r",
+									"    });\r",
+									"}\r",
+									"if (pm.response.code === 500) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Ada pesan error\", () => {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/admin/surveyors/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"admin",
+								"surveyors",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "pph",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code 200 (eksport xlsx) atau 400/404/500 error\", () => {\r",
+									"    pm.expect([200, 400, 404, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses, response adalah file (xlsx)\r",
+									"if (pm.response.code === 200) {\r",
+									"    pm.test(\"Response type adalah xlsx\", () => {\r",
+									"        pm.expect(pm.response.headers.get('Content-Type')).to.include(\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\");\r",
+									"        pm.expect(pm.response.headers.get('Content-Disposition')).to.include(\".xlsx\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika gagal (parameter kurang, kecamatan/tahun tak ada, server error)\r",
+									"if ([400, 404, 500].includes(pm.response.code)) {\r",
+									"    var json;\r",
+									"    try { json = pm.response.json(); } catch(e) { json = null; }\r",
+									"    pm.test(\"Error message exists\", () => {\r",
+									"        pm.expect(json).to.not.be.null;\r",
+									"        pm.expect(json).to.have.property(\"error\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/admin/pph?kecamatan=1&tahun=2021",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"admin",
+								"pph"
+							],
+							"query": [
+								{
+									"key": "kecamatan",
+									"value": "1"
+								},
+								{
+									"key": "tahun",
+									"value": "2021"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code adalah 302 (redirect) atau 500 (error)\", function () {\r",
+									"    pm.expect([302, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses, redirect ke halaman login:\r",
+									"if (pm.response.code === 302) {\r",
+									"    pm.test(\"Redirect location header mengarah ke halaman login\", function () {\r",
+									"        var loginUrl = pm.environment.get(\"LOGIN_URL\") || \"/masuk\"; // Bisa disesuaikan sesuai env\r",
+									"        var location = pm.response.headers.get('Location');\r",
+									"        pm.expect(location).to.include(loginUrl);\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika error (500)\r",
+									"if (pm.response.code === 500) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Ada property message pada body error logout\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/auth/logout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "surveyor",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Status success 200\r",
+									"pm.test(\"Status code is 200 atau 4xx\", function () {\r",
+									"    pm.expect([200, 400, 401, 404, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses\r",
+									"if (pm.response.code === 200) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Response has token\", function () {\r",
+									"        pm.expect(json).to.have.property(\"token\");\r",
+									"        pm.environment.set(\"token\", json.token);\r",
+									"    });\r",
+									"    pm.test(\"Response has data object\", function () {\r",
+									"        pm.expect(json).to.have.property(\"data\");\r",
+									"        pm.expect(json.data.nip).to.be.a(\"string\");\r",
+									"        pm.expect(json.data).to.have.property(\"peran\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika error\r",
+									"if ([400, 404, 401, 500].includes(pm.response.code)) {\r",
+									"    var err = pm.response.json();\r",
+									"    pm.test(\"Error response has message\", function () {\r",
+									"        pm.expect(err).to.have.property(\"message\");\r",
+									"    });\r",
+									"    // Jika validasi error\r",
+									"    if (pm.response.code === 400 && err.errors) {\r",
+									"        pm.test(\"400 response includes errors array\", function () {\r",
+									"            pm.expect(err.errors).to.be.an(\"array\");\r",
+									"        });\r",
+									"    }\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"nip\": \"197205052021212005\",\r\n  \"kata_sandi\": \"05051972\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:3001/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code must be 200/401/500\", function () {\r",
+									"    pm.expect([200, 401, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Berhasil: Ada property 'data'\", function () {\r",
+									"        pm.expect(json).to.have.property(\"data\");\r",
+									"        pm.expect(json.data).to.have.property(\"nip\");\r",
+									"        pm.expect(json.data).to.have.property(\"nama_lengkap\");\r",
+									"        pm.expect(json.data.nip).to.be.a(\"string\");\r",
+									"        pm.expect(json.data.nama_lengkap).to.be.a(\"string\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 401) {\r",
+									"    var err = pm.response.json();\r",
+									"    pm.test(\"401 Error: Ada error message\", function () {\r",
+									"        pm.expect(err).to.have.property(\"error\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 500) {\r",
+									"    var err = pm.response.json();\r",
+									"    pm.test(\"500 Error: Ada error message\", function () {\r",
+									"        pm.expect(err).to.have.property(\"error\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJpZF9wZW5nZ3VuYSI6MSwibmlwIjoiMTIzNDU2Nzg5MCIsInBlcmFuIjoiQURNSU4iLCJpYXQiOjE3NjM5OTE1NzYsImV4cCI6MTc2NDA3Nzk3Nn0.La2y2EiAmwkzdDx0p450LbkPFI9jqDG3WB8H3jPTO90",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/auth/account",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"auth",
+								"account"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "add",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code 303 (redirect), 400 (bad request), atau 500 (error)\", function () {\r",
+									"    pm.expect([303, 400, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses: response 303 redirect ke /api/surveyor/family\r",
+									"if (pm.response.code === 303) {\r",
+									"    pm.test(\"Redirect ke /api/surveyor/family\", function () {\r",
+									"        pm.expect(pm.response.headers.get('Location')).to.include(\"/api/surveyor/family\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika gagal validasi (tidak kirim foto dsb)\r",
+									"if (pm.response.code === 400) {\r",
+									"    var json;\r",
+									"    try { json = pm.response.json(); } catch(e) { json = null; }\r",
+									"    pm.test(\"Ada message atau errors\", function () {\r",
+									"        pm.expect(json).to.not.be.null;\r",
+									"        pm.expect(json).to.have.any.keys(\"message\", \"errors\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika error server\r",
+									"if (pm.response.code === 500) {\r",
+									"    var json;\r",
+									"    try { json = pm.response.json(); } catch(e) { json = null; }\r",
+									"    pm.test(\"Ada property message error\", function () {\r",
+									"        pm.expect(json).to.not.be.null;\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": " Suparman",
+									"type": "text"
+								},
+								{
+									"key": "family_card_number",
+									"value": " 987654321",
+									"type": "text"
+								},
+								{
+									"key": "village",
+									"value": " 1",
+									"type": "text"
+								},
+								{
+									"key": "address",
+									"value": " Jl. Melati 12",
+									"type": "text"
+								},
+								{
+									"key": "members",
+									"value": " 4",
+									"type": "text"
+								},
+								{
+									"key": "income",
+									"value": " 3500000",
+									"type": "text"
+								},
+								{
+									"key": "spending",
+									"value": " 2500000",
+									"type": "text"
+								},
+								{
+									"key": "pregnant",
+									"value": " Tidak",
+									"type": "text"
+								},
+								{
+									"key": "breastfeeding",
+									"value": " Ya",
+									"type": "text"
+								},
+								{
+									"key": "toddler",
+									"value": " Tidak",
+									"type": "text"
+								},
+								{
+									"key": "id_district",
+									"value": " 7",
+									"type": "text"
+								},
+								{
+									"key": "id_surveyor",
+									"value": " 8",
+									"type": "text"
+								},
+								{
+									"key": "foodstuff",
+									"value": " [{\"id\":1,\"name\":\"Beras\",\"portion\":10},{\"id\":2,\"name\":\"Ketan\",\"portion\":5}]",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"type": "file",
+									"src": "/C:/Users/ahmad/OneDrive/Pictures/505616.png"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3001/api/surveyor/family/add",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"surveyor",
+								"family",
+								"add"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "family",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200, 401, 403, 404, atau 500\", function () {\r",
+									"    pm.expect([200, 401, 403, 404, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses 200, ada array 'family'\r",
+									"if (pm.response.code === 200) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"'family' harus array dan minimal ada 1\", function() {\r",
+									"        pm.expect(json).to.have.property(\"family\");\r",
+									"        pm.expect(json.family).to.be.an(\"array\");\r",
+									"        pm.expect(json.family.length).to.be.above(0);\r",
+									"    });\r",
+									"    // Struktur salah satu family\r",
+									"    pm.test(\"Struktur data family benar\", function () {\r",
+									"        const f = json.family[0];\r",
+									"        pm.expect(f).to.have.all.keys(\"id_family\", \"name\", \"family_card_number\", \"village\", \"status\", \"comment\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// 401 token tidak valid / tidak autentikasi\r",
+									"if (pm.response.code === 401) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Pesan error autentikasi ada\", () => {\r",
+									"        pm.expect(json).to.have.any.keys(\"error\", \"message\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// 403: Surveyor tidak punya kecamatan\r",
+									"if (pm.response.code === 403) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Pesan error privilege ada\", () => {\r",
+									"        pm.expect(json).to.have.property(\"error\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// 404: Tidak ada data keluarga\r",
+									"if (pm.response.code === 404) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Pesan tidak ada data\", () => {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// 500: Error server\r",
+									"if (pm.response.code === 500) {\r",
+									"    const json = pm.response.json();\r",
+									"    pm.test(\"Pesan error server ada\", () => {\r",
+									"        pm.expect(json).to.have.property(\"error\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/surveyor/family",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"surveyor",
+								"family"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code 200 (sukses), 404 (data tidak ada), atau 500 (error)\", function () {\r",
+									"    pm.expect([200, 404, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"if (pm.response.code === 200) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Ada property family & pesan sukses\", function () {\r",
+									"        pm.expect(json).to.have.property(\"family\");\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/berhasil/i);\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 404) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Pesan data tidak ditemukan ada\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/tidak ditemukan/i);\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"if (pm.response.code === 500) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Pesan gagal ambil data keluarga ada\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/gagal/i);\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/surveyor/family/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"surveyor",
+								"family",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "patch",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code 303 (redirect), 400 (bad request), atau 500 (server error)\", function () {\r",
+									"    pm.expect([303, 400, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Sukses edit, response 303 redirect\r",
+									"if (pm.response.code === 303) {\r",
+									"    pm.test(\"Redirect ke /api/surveyor/family\", function () {\r",
+									"        pm.expect(pm.response.headers.get('Location')).to.include(\"/api/surveyor/family\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Error validasi\r",
+									"if (pm.response.code === 400) {\r",
+									"    var json; try { json = pm.response.json(); } catch(e) { json = null; }\r",
+									"    pm.test(\"Ada message atau errors pada validasi\", function () {\r",
+									"        pm.expect(json).to.not.be.null;\r",
+									"        pm.expect(json).to.have.any.keys(\"message\", \"errors\");\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Error server\r",
+									"if (pm.response.code === 500) {\r",
+									"    var json; try { json = pm.response.json(); } catch(e) { json = null; }\r",
+									"    pm.test(\"Ada pesan gagal edit data keluarga\", function () {\r",
+									"        pm.expect(json).to.not.be.null;\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/gagal/i);\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": " Suparni",
+									"type": "text"
+								},
+								{
+									"key": "family_card_number",
+									"value": " 1234567890123456",
+									"type": "text"
+								},
+								{
+									"key": "village",
+									"value": " 2",
+									"type": "text"
+								},
+								{
+									"key": "address",
+									"value": " Jl. Anggrek 88",
+									"type": "text"
+								},
+								{
+									"key": "members",
+									"value": " 4",
+									"type": "text"
+								},
+								{
+									"key": "income",
+									"value": " 1500000",
+									"type": "text"
+								},
+								{
+									"key": "spending",
+									"value": " 1000000",
+									"type": "text"
+								},
+								{
+									"key": "pregnant",
+									"value": " Tidak",
+									"type": "text"
+								},
+								{
+									"key": "breastfeeding",
+									"value": " Ya",
+									"type": "text"
+								},
+								{
+									"key": "toddler",
+									"value": " Tidak",
+									"type": "text"
+								},
+								{
+									"key": "foodstuff",
+									"value": " [{\"id\":1,\"name\":\"Beras\",\"portion\":6}]",
+									"type": "text"
+								},
+								{
+									"key": "photo",
+									"type": "file",
+									"src": "/C:/Users/ahmad/OneDrive/Pictures/505616.png"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:3001/api/surveyor/family/1/patch",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"surveyor",
+								"family",
+								"1",
+								"patch"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code adalah 200 (sukses) atau 500 (error)\", function () {\r",
+									"    pm.expect([200, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses\r",
+									"if (pm.response.code === 200) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Pesan sukses ada\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"        pm.expect(json.message).to.match(/berhasil/i);\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika error (data sudah dihapus/tidak ada/id tidak valid/database error)\r",
+									"if (pm.response.code === 500) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Pesan error ada\", function () {\r",
+									"        pm.expect(json).to.have.property(\"error\");\r",
+									"        pm.expect(json.error).to.match(/gagal|hapus/i);\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/surveyor/family/1/delete",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"surveyor",
+								"family",
+								"1",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code adalah 302 (redirect) atau 500 (error)\", function () {\r",
+									"    pm.expect([302, 500]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// Jika sukses, redirect ke halaman login:\r",
+									"if (pm.response.code === 302) {\r",
+									"    pm.test(\"Redirect location header mengarah ke halaman login\", function () {\r",
+									"        var loginUrl = pm.environment.get(\"LOGIN_URL\") || \"/login\"; // Bisa disesuaikan sesuai env\r",
+									"        var location = pm.response.headers.get('Location');\r",
+									"        pm.expect(location).to.include(loginUrl);\r",
+									"    });\r",
+									"}\r",
+									"\r",
+									"// Jika error (500)\r",
+									"if (pm.response.code === 500) {\r",
+									"    var json = pm.response.json();\r",
+									"    pm.test(\"Ada property message pada body error logout\", function () {\r",
+									"        pm.expect(json).to.have.property(\"message\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJpZF9wZW5nZ3VuYSI6MSwibmlwIjoiMTIzNDU2Nzg5MCIsInBlcmFuIjoiQURNSU4iLCJpYXQiOjE3NjM5OTE1NzYsImV4cCI6MTc2NDA3Nzk3Nn0.La2y2EiAmwkzdDx0p450LbkPFI9jqDG3WB8H3jPTO90",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3001/api/auth/logout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "3001",
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "basic"
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
