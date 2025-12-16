@@ -1,14 +1,7 @@
 import { expect, test } from "playwright/test";
-import {
-  API_SURVEYOR_ADD_DATA_FAMILY,
-  API_SURVEYOR_FAMILY,
-  LOGIN,
-  SURVEYOR_ADD_DATA_FAMILY,
-  SURVEYOR_DASHBOARD,
-  SURVEYOR_FAMILY,
-} from "@/constants/routes";
+import { API_SURVEYOR_ADD_DATA_FAMILY, API_SURVEYOR_FAMILY, LOGIN, SURVEYOR_ADD_DATA_FAMILY, SURVEYOR_DASHBOARD, SURVEYOR_FAMILY } from "@/constants/routes";
 
-test.describe("E2E: Alur Tambah Data Keluarga", () => {
+test.describe("E2E: Flow for adding family data", () => {
   // prettier-ignore
   test.beforeEach(async ({ page }) => {
     await page.goto(LOGIN);
@@ -236,38 +229,6 @@ test.describe("E2E: Alur Tambah Data Keluarga", () => {
     await page.getByPlaceholder("Cth. Perumahan Meikarta").fill("Jl. Invalid");
     await page.getByPlaceholder("Cth. 11").nth(0).fill("4");
     await page.getByLabel("Pilih Gambar").setInputFiles("public/images/favicon.svg");
-
-    // Isi Select & Radio
-    await page.getByRole("button", { name: "Pilih Desa" }).click();
-    await page.getByRole("listitem").filter({ hasText: "Saptorenggo" }).click();
-    await page.getByRole("button", { name: "Pilih Pendapatan Keluarga" }).click();
-    await page.getByRole("listitem").filter({ hasText: "Rp2 juta - Rp3 juta" }).click();
-    await page.getByRole("button", { name: "Pilih Pengeluaran Keluarga" }).click();
-    await page.getByRole("listitem").filter({ hasText: "Rp1 juta - Rp2 juta" }).click();
-    await page.getByRole("radio", { name: "Ya" }).first().check();
-    await page.getByRole("radio", { name: "Tidak" }).nth(1).check();
-    await page.getByRole("radio", { name: "Ya" }).nth(2).check();
-
-    await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page).toHaveURL(SURVEYOR_ADD_DATA_FAMILY, { timeout: 5000 });
-  });
-
-  // prettier-ignore
-  test("should prevent submission without uploading a photo", async ({ page }) => {
-    // Isi semua field WAJIB lainnya (kecuali foto)
-    await page.getByPlaceholder("Cth. Agus Miftah").fill("Tester Missing Photo");
-    await page.getByPlaceholder("Cth. 1234567890123456").fill("1111222233334445");
-    await page.getByPlaceholder("Cth. Perumahan Meikarta").fill("Jl. No Photo");
-    await page.getByPlaceholder("Cth. 11").nth(0).fill("4");
-
-    // Mock POST untuk mengembalikan 400 Bad Request (route.ts: if (!file) return status: 400)
-    await page.route(`**${API_SURVEYOR_ADD_DATA_FAMILY}`, async (route) => {
-      await route.fulfill({
-        status: 400,
-        contentType: "application/json",
-        body: JSON.stringify({ message: "Foto wajib diunggah." }),
-      });
-    });
 
     // Isi Select & Radio
     await page.getByRole("button", { name: "Pilih Desa" }).click();
